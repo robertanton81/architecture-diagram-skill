@@ -2,6 +2,20 @@
 
 Persistent reference for the IcePanel REST API. The skill reads this file instead of re-fetching docs each time.
 
+## Contents
+
+- [Base URL & Auth](#base-url--auth)
+- [Rate Limits](#rate-limits)
+- [Landscapes](#landscapes)
+- [Model Objects](#model-objects) (List, Create, Upsert, Update, Get/Delete, Get root)
+- [Model Connections](#model-connections) (Create, Upsert/Update/Get/Delete)
+- [Diagrams](#diagrams) (Create, Replace Content/Positioning)
+- [Teams](#teams)
+- [Technologies](#technologies)
+- [Flows](#flows)
+- [Versions](#versions)
+- [Export](#export)
+
 ## Base URL & Auth
 
 ```

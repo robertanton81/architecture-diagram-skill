@@ -29,30 +29,30 @@ The skill asks which mode you want at the start of every interaction.
 git clone https://github.com/robertanton81/architecture-diagram-skill.git
 
 # Install globally (available in all projects)
-mkdir -p ~/.claude/skills/architecture-diagrams
-cp -r architecture-diagram-skill/skill/* ~/.claude/skills/architecture-diagrams/
+mkdir -p ~/.claude/skills/diagramming-architecture
+cp -r architecture-diagram-skill/skill/* ~/.claude/skills/diagramming-architecture/
 ```
 
 Then in any project, use the skill in Claude Code:
 
 ```
-/architecture-diagrams
+/diagramming-architecture
 ```
 
 ### Usage Examples
 
 ```
 # Full system diagram
-/architecture-diagrams
+/diagramming-architecture
 
 # Monorepo — diagram a specific service
-/architecture-diagrams services/payments
+/diagramming-architecture services/payments
 
 # Topic-focused — trace a business process
-/architecture-diagrams payment flow
+/diagramming-architecture payment flow
 
-# Sequence diagram for a specific scenario
-/architecture-diagrams user login flow
+# Flow diagram for a specific scenario
+/diagramming-architecture user login flow
 ```
 
 The skill will:
@@ -135,7 +135,7 @@ cp .env.example .env
 - **Read** existing architecture via the IcePanel MCP server
 - **Write** new model objects, connections, diagrams, and flows via REST API (`push_to_icepanel.py`)
 - **Merge** codebase analysis with existing IcePanel data (avoids duplicates)
-- **Interactive flows** — step-by-step sequence diagrams with branching and parallel paths
+- **Interactive flows** — step-by-step flow diagrams with branching and parallel paths
 
 ## Running as an SDK Agent
 

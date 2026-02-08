@@ -2,6 +2,14 @@
 
 The `push_to_icepanel.py` script reads a plan JSON file that describes what to create in IcePanel.
 
+## Contents
+
+- [Schema](#schema)
+- [Field reference](#field-reference): [Objects](#objects), [Connections](#connections), [Diagram](#diagram), [Flows](#flows), [Flow Steps](#flow-steps), [Step Types](#step-types)
+- [Mapping from analyze_codebase.py](#mapping-from-analyze_codebasepy-output)
+- [Example](#example)
+- [Running](#running)
+
 ## Schema
 
 ```json

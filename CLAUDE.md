@@ -9,7 +9,7 @@ A Claude Skill and SDK agent for generating C4 architecture diagrams from codeba
 - Topic-focused diagramming: trace specific business processes (e.g. payment flow, user login) across the codebase
 - Monorepo support: scope analysis to a specific subdirectory
 - Self-learning knowledge base: learns IcePanel API and Mermaid syntax from docs, persists for future sessions
-- Interactive flow/sequence diagram generation with branching and parallel paths
+- Interactive flow diagram generation with branching and parallel paths
 - Never assumes — always asks the user when something is ambiguous
 
 ## Project Structure
@@ -49,12 +49,12 @@ npm start -- "Create architecture diagram for services/auth"
 
 ```bash
 # Global install (all projects):
-mkdir -p ~/.claude/skills/architecture-diagrams
-cp -r skill/* ~/.claude/skills/architecture-diagrams/
+mkdir -p ~/.claude/skills/diagramming-architecture
+cp -r skill/* ~/.claude/skills/diagramming-architecture/
 
 # Or from the distributable package:
-mkdir -p ~/.claude/skills/architecture-diagrams
-unzip architecture-diagrams.skill -d ~/.claude/skills/architecture-diagrams
+mkdir -p ~/.claude/skills/diagramming-architecture
+unzip diagramming-architecture.skill -d ~/.claude/skills/diagramming-architecture
 ```
 
 ## Environment Variables (optional — only for IcePanel mode)

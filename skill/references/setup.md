@@ -15,13 +15,13 @@ IcePanel mode requires API credentials and the IcePanel MCP server.
 Unzip the `.skill` file into your skills directory:
 
 ```bash
-mkdir -p ~/.claude/skills/architecture-diagrams
-unzip architecture-diagrams.skill -d ~/.claude/skills/architecture-diagrams
+mkdir -p ~/.claude/skills/diagramming-architecture
+unzip diagramming-architecture.skill -d ~/.claude/skills/diagramming-architecture
 ```
 
 ### Claude.ai
 
-Go to **Settings → Features** and upload the `architecture-diagrams.skill` file.
+Go to **Settings → Features** and upload the `diagramming-architecture.skill` file.
 
 ### Claude API
 
@@ -31,7 +31,7 @@ Upload via the Skills API:
 curl -X POST https://api.anthropic.com/v1/skills \
   -H "x-api-key: $ANTHROPIC_API_KEY" \
   -H "anthropic-beta: skills-2025-10-02" \
-  -F "file=@architecture-diagrams.skill"
+  -F "file=@diagramming-architecture.skill"
 ```
 
 ## IcePanel MCP Server Setup (optional — required only for IcePanel mode)

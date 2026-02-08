@@ -57,6 +57,47 @@ For monorepos, **always ask** which part to focus on — never diagram the entir
 
 If the user mentions IcePanel explicitly in their request, confirm: "I'll use IcePanel mode — is that correct?"
 
+## THIRD: Choose the right diagram type
+
+**After analyzing the codebase (but before generating), recommend the best diagram type based on what you found.** Do not just list all options — analyze the codebase findings and make an informed recommendation, presenting the 2-3 most suitable options with reasoning.
+
+### Decision logic
+
+Use the codebase analysis results and the user's scope to determine what makes sense:
+
+| What you found | Recommended diagram type | Why |
+|---|---|---|
+| Multiple independent systems/services communicating | **C4Context (C1)** | Shows the big picture — which systems exist and how they interact |
+| One system with multiple internal apps/stores/workers | **C4Container (C2)** | Shows what's inside the system — containers, databases, queues |
+| One container/service with internal modules | **C4Component (C3)** | Shows internal structure — modules, classes, packages |
+| User asked for a specific flow/process | **C4Dynamic** or **sequenceDiagram** | Shows step-by-step interaction over time |
+| Microservices with complex call chains | **C4Context (C1)** first, then offer **C4Dynamic** for specific flows | Overview first, then drill into flows |
+| Monolith with clear internal modules | **C4Container (C2)** or **C4Component (C3)** | Depends on whether modules are deployable units or code-level |
+| Topic-scoped (e.g. "payment flow") | **C4Dynamic** or **sequenceDiagram** + **C4Context** showing involved systems | Flow diagram is primary, structure diagram as companion |
+| Simple app (few components, no microservices) | **C4Context (C1)** | Keep it simple — don't over-engineer the diagram |
+| Infrastructure/deployment focus | **C4Deployment** | Shows servers, containers, cloud services |
+
+### How to present the recommendation
+
+After analyzing the codebase, present your recommendation with reasoning. Example:
+
+> "Based on what I found, I'd recommend a **C4Container (C2) diagram** — your project has one main system with 5 distinct containers (API, Web App, Worker, PostgreSQL, Redis) that would be well-represented at this level.
+>
+> Other options that could work:
+> - **C4Context (C1)** — if you want a higher-level view showing just the system + external services (Stripe, SendGrid)
+> - **C4Dynamic** — if you'd prefer a sequence diagram showing a specific request flow
+>
+> Which would you prefer?"
+
+### Key rules
+
+- **Always explain WHY** you recommend a specific type — tie it to what you found in the codebase
+- **Offer 2-3 options**, not all of them — filter based on what actually makes sense
+- **If the scope clearly dictates one type** (e.g. "diagram the payment flow" → C4Dynamic/sequenceDiagram), still confirm: "A sequence diagram is the best fit for tracing this flow — sound good?"
+- **If multiple types are equally valid**, explain the trade-off: "C1 gives you the bird's-eye view, C2 shows internal structure — which perspective is more useful for you?"
+- **For complex systems, suggest a multi-diagram approach**: "I'd recommend starting with a C1 overview, then drilling into C2 for the backend system — want me to create both?"
+- **Never silently pick a diagram type** without at least confirming with the user
+
 ## CRITICAL RULE: Never assume — always ask
 
 **This is the most important behavioral rule in this skill.**
@@ -64,7 +105,6 @@ If the user mentions IcePanel explicitly in their request, confirm: "I'll use Ic
 When ANYTHING is ambiguous, unclear, or could be interpreted multiple ways: **STOP and ASK the user.** Do not make assumptions. Do not pick a "reasonable default." Do not proceed with your best guess.
 
 ### Architecture decisions (both modes)
-- **C4 level** — "Should this be C1 (System Context), C2 (Container), or C3 (Component) level?"
 - **Module classification** — "I found `auth/` — is this a standalone service, a shared library, or part of the API?"
 - **External systems** — "I see calls to Stripe/AWS/etc. Include these as external systems?"
 - **Actors** — "Who are the users/actors? I can infer from code but want to confirm."
@@ -79,7 +119,6 @@ When ANYTHING is ambiguous, unclear, or could be interpreted multiple ways: **ST
 - **Depth** — "Should I trace into internal service logic, or keep it at the service-to-service level?"
 
 ### Mermaid-specific decisions
-- **Diagram type** — "Which Mermaid diagram? C4Context, C4Container, C4Dynamic (sequence), flowchart?"
 - **Styling** — "Want custom theming/colors, or Mermaid defaults?"
 - **Output destination** — "Write to a file (e.g. `docs/architecture.md`) or show the code here?"
 - **Multiple diagrams** — "Create separate diagrams for overview + drill-downs, or one combined?"
@@ -89,7 +128,7 @@ When ANYTHING is ambiguous, unclear, or could be interpreted multiple ways: **ST
 - **Existing objects** — "I found similar objects in IcePanel. Reuse them or create new?"
 - **Technology mapping** — "Which IcePanel technology ID for this framework?"
 
-**Pattern:** Present what you discovered, then ask 2-3 targeted questions. Always better than generating a possibly-wrong diagram.
+**Pattern:** Present what you discovered, recommend a diagram type with reasoning, then ask 2-3 targeted questions. Always better than generating a possibly-wrong diagram.
 
 ## Knowledge base: Learn before you act
 
@@ -159,21 +198,22 @@ For business process scoping (e.g. "payment flow", "user login"):
 
 1. Analyze codebase (see shared workflow above)
 2. **Present findings**: list discovered modules, entry points, connections, technologies. Highlight ambiguities.
-3. **Ask clarifying questions**: C4 level, include/exclude modules, classify ambiguous components, external systems, actors, flow branches.
-4. **Check knowledge base**: read relevant files from `knowledge/icepanel/` for the API operations needed. If a topic is missing, fetch from IcePanel docs, learn it, and save to `knowledge/icepanel/` before proceeding.
-5. **Build a plan JSON file** from the confirmed architecture. See [references/plan-format.md](references/plan-format.md).
-6. **Show the plan** for approval: "Here's what I'll create in IcePanel — does this look right?"
-7. **Dry run first**:
+3. **Recommend diagram type** (see [THIRD: Choose the right diagram type](#third-choose-the-right-diagram-type)) — recommend C4 level based on codebase findings, offer 2-3 options with reasoning, confirm with user.
+4. **Ask clarifying questions**: include/exclude modules, classify ambiguous components, external systems, actors, flow branches.
+5. **Check knowledge base**: read relevant files from `knowledge/icepanel/` for the API operations needed. If a topic is missing, fetch from IcePanel docs, learn it, and save to `knowledge/icepanel/` before proceeding.
+6. **Build a plan JSON file** from the confirmed architecture. See [references/plan-format.md](references/plan-format.md).
+7. **Show the plan** for approval: "Here's what I'll create in IcePanel — does this look right?"
+8. **Dry run first**:
    ```bash
    python scripts/push_to_icepanel.py plan.json --dry-run
    ```
-8. **Push to IcePanel** after approval:
+9. **Push to IcePanel** after approval:
    ```bash
    python scripts/push_to_icepanel.py plan.json
    ```
    Uses env vars `API_KEY` and `ORGANIZATION_ID` from MCP config, plus `ICEPANEL_LANDSCAPE_ID` (ask user if not set).
-9. **Offer to refine**: drill into modules, add detail levels, create additional diagram views.
-10. **Offer to add flows**: "Would you like to create flow diagrams showing how requests travel through the system?" Follow the flow generation workflow below.
+10. **Offer to refine**: drill into modules, add detail levels, create additional diagram views.
+11. **Offer to add flows**: "Would you like to create flow diagrams showing how requests travel through the system?" Follow the flow generation workflow below.
 
 ### Reading existing IcePanel data
 
@@ -249,21 +289,20 @@ Ask: "Does this flow look right? Should I add, remove, or change any steps?"
 
 1. Analyze codebase (see shared workflow above)
 2. **Present findings**: list discovered modules, entry points, connections, technologies. Highlight ambiguities.
-3. **Ask clarifying questions**:
-   - Which C4 level (C1/C2/C3)?
-   - Which Mermaid diagram type (C4Context, C4Container, C4Component, C4Dynamic)?
+3. **Recommend diagram type** (see [THIRD: Choose the right diagram type](#third-choose-the-right-diagram-type)) — based on codebase findings, recommend the best Mermaid diagram type (C4Context, C4Container, C4Component, C4Dynamic, sequenceDiagram, flowchart). Present 2-3 suitable options with reasoning. Confirm with user before proceeding.
+4. **Ask clarifying questions** (based on confirmed diagram type):
    - Include/exclude specific modules?
    - External systems and actors to show?
    - Styling preferences?
-4. **Check knowledge base**: read `knowledge/mermaid/c4-syntax.md` (or the relevant diagram type file). If the file doesn't exist, check `knowledge/.index.md` for the docs URL, fetch, learn, and save before generating.
-5. **Generate the Mermaid diagram** using confirmed architecture and learned syntax. Map modules using [references/c4-mapping.md](references/c4-mapping.md). Follow the readability best practices in `knowledge/mermaid/c4-syntax.md` (label lengths, element count, layout config).
-6. **Visual review — render and inspect before showing to the user** (see [Visual review for Mermaid diagrams](#visual-review-for-mermaid-diagrams) below for full details):
+5. **Check knowledge base**: read `knowledge/mermaid/c4-syntax.md` (or the relevant diagram type file). If the file doesn't exist, check `knowledge/.index.md` for the docs URL, fetch, learn, and save before generating.
+6. **Generate the Mermaid diagram** using confirmed architecture and learned syntax. Map modules using [references/c4-mapping.md](references/c4-mapping.md). Follow the readability best practices in `knowledge/mermaid/c4-syntax.md` (label lengths, element count, layout config).
+7. **Visual review — render and inspect before showing to the user** (see [Visual review for Mermaid diagrams](#visual-review-for-mermaid-diagrams) below for full details):
    a. Write the Mermaid code to a temp file (`/tmp/architecture-diagram.mmd`)
    b. Render to PNG: `npx -p @mermaid-js/mermaid-cli mmdc -i /tmp/architecture-diagram.mmd -o /tmp/architecture-diagram.png -w 2048 -H 1536`
    c. Read the PNG image and visually inspect it against the readability checklist
    d. If readability issues found → fix the Mermaid code → re-render → re-inspect (max 3 iterations)
    e. If `mmdc` fails or is unavailable → skip visual review, note it to the user, and proceed with code-only presentation
-7. **Present for approval** — show BOTH the Mermaid code in a fenced code block AND the rendered image:
+8. **Present for approval** — show BOTH the Mermaid code in a fenced code block AND the rendered image:
    ````
    ```mermaid
    C4Context
@@ -273,11 +312,11 @@ Ask: "Does this flow look right? Should I add, remove, or change any steps?"
    ````
    Show the rendered PNG image alongside the code.
    Ask: "Does this look right? Should I add, remove, or change anything?"
-8. **Refine** based on feedback: add/remove elements, change C4 levels, adjust labels, add detail. **Re-run visual review** after each refinement.
-9. **Offer next steps**:
-   - "Want me to create a drill-down diagram for any of these systems?"
-   - "Should I add a sequence diagram showing a specific request flow?"
-   - "Want me to write this to a file? If so, where?"
+9. **Refine** based on feedback: add/remove elements, change C4 levels, adjust labels, add detail. **Re-run visual review** after each refinement.
+10. **Offer next steps**:
+    - "Want me to create a drill-down diagram for any of these systems?"
+    - "Should I add a sequence diagram showing a specific request flow?"
+    - "Want me to write this to a file? If so, where?"
 
 ### Mermaid sequence diagrams (interactive)
 

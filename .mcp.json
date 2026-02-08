@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "icepanel": {
+      "command": "npx",
+      "args": ["-y", "@icepanel/mcp-server@latest"],
+      "env": {
+        "API_KEY": "YOUR_API_KEY_HERE",
+        "ORGANIZATION_ID": "YOUR_ORGANIZATION_ID_HERE"
+      }
+    }
+  }
+}

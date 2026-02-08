@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.env
+*.skill
+.DS_Store

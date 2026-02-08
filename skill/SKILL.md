@@ -1,0 +1,348 @@
+---
+name: architecture-diagrams
+description: >-
+  Creates C4 architecture diagrams by analyzing a codebase. Two output modes:
+  IcePanel (push diagrams to the IcePanel app) and Mermaid (generate Mermaid
+  diagram code). Supports full system diagrams, monorepo subdirectory scoping,
+  and topic-focused diagrams for specific business processes (e.g. payment flow,
+  user login, order processing). Use when the user wants to: create architecture
+  diagrams, visualize a codebase, generate C4 diagrams, create flow/sequence
+  diagrams, or diagram a specific business process.
+---
+
+# Architecture Diagram Generator
+
+Creates C4 architecture diagrams by analyzing a codebase. Two output modes:
+
+1. **IcePanel mode** — push model objects, connections, diagrams, and flows to the IcePanel app via REST API
+2. **Mermaid mode** — generate Mermaid diagram code (C4, sequence, flowchart) renderable in GitHub, VS Code, docs, etc.
+
+## FIRST: Determine what to diagram
+
+Before doing anything else, determine the **scope** of the diagram.
+
+### If the skill was invoked with an argument
+
+The argument can be either a **path** or a **topic**:
+
+- **Path** (e.g. `/architecture-diagrams services/payments`) — analyze only that subdirectory
+- **Topic** (e.g. `/architecture-diagrams payment flow`) — analyze the full codebase but focus on tracing that specific business process
+
+If unclear whether the argument is a path or topic, **ask**: "Is `<argument>` a directory path I should analyze, or a business process I should trace through the codebase?"
+
+### If no argument was provided
+
+**Ask the user:**
+
+> "What would you like to diagram?
+> 1. **Full system** — the entire project architecture
+> 2. **Specific module/directory** — a subdirectory of the project (useful for monorepos)
+> 3. **Specific business process** — trace a flow like payment processing, user login, order fulfillment across all relevant modules
+>
+> Which would you prefer, and can you point me to the project path?"
+
+For monorepos, **always ask** which part to focus on — never diagram the entire monorepo without confirmation.
+
+## SECOND: Select output mode
+
+**After scope is determined, ask the user which output mode to use:**
+
+> "Which output format would you like?
+> 1. **IcePanel** — creates diagrams in your IcePanel workspace (requires API key setup)
+> 2. **Mermaid** — generates Mermaid diagram code you can render in GitHub, VS Code, docs, etc.
+>
+> Which would you prefer?"
+
+**Do NOT proceed until the user has explicitly chosen a mode.** Do not infer the mode from context. Do not default to one mode.
+
+If the user mentions IcePanel explicitly in their request, confirm: "I'll use IcePanel mode — is that correct?"
+
+## CRITICAL RULE: Never assume — always ask
+
+**This is the most important behavioral rule in this skill.**
+
+When ANYTHING is ambiguous, unclear, or could be interpreted multiple ways: **STOP and ASK the user.** Do not make assumptions. Do not pick a "reasonable default." Do not proceed with your best guess.
+
+### Architecture decisions (both modes)
+- **C4 level** — "Should this be C1 (System Context), C2 (Container), or C3 (Component) level?"
+- **Module classification** — "I found `auth/` — is this a standalone service, a shared library, or part of the API?"
+- **External systems** — "I see calls to Stripe/AWS/etc. Include these as external systems?"
+- **Actors** — "Who are the users/actors? I can infer from code but want to confirm."
+- **Boundaries** — "Group by team, domain, or deployment unit?"
+- **Data flows** — "What protocol does this connection use? REST, gRPC, messaging?"
+- **Detail depth** — "Expand nested subsystems or keep them collapsed?"
+- **Flow branching** — "Show conditional paths (success/failure) or just the happy path?"
+
+### Topic-scoped decisions
+- **Scope boundaries** — "Should I include the notification service that sends receipts, or stop at payment confirmation?"
+- **Entry points** — "I found multiple entry points for this flow (API + webhook + scheduled job). Include all of them?"
+- **Depth** — "Should I trace into internal service logic, or keep it at the service-to-service level?"
+
+### Mermaid-specific decisions
+- **Diagram type** — "Which Mermaid diagram? C4Context, C4Container, C4Dynamic (sequence), flowchart?"
+- **Styling** — "Want custom theming/colors, or Mermaid defaults?"
+- **Output destination** — "Write to a file (e.g. `docs/architecture.md`) or show the code here?"
+- **Multiple diagrams** — "Create separate diagrams for overview + drill-downs, or one combined?"
+
+### IcePanel-specific decisions
+- **Landscape** — "Which IcePanel landscape should I create these in?"
+- **Existing objects** — "I found similar objects in IcePanel. Reuse them or create new?"
+- **Technology mapping** — "Which IcePanel technology ID for this framework?"
+
+**Pattern:** Present what you discovered, then ask 2-3 targeted questions. Always better than generating a possibly-wrong diagram.
+
+## Knowledge base: Learn before you act
+
+Before performing any diagramming operation, **check the knowledge base first**:
+
+1. Determine which mode is active (IcePanel or Mermaid)
+2. Look in `knowledge/<mode>/` for a `.md` file covering the topic
+3. Also check `knowledge/shared/` for general C4 topics
+4. If a file exists → read it and use that information
+5. If NO file exists:
+   a. Check `knowledge/.index.md` for the relevant documentation URL
+   b. Fetch and read the docs
+   c. Extract the key information (syntax, endpoints, fields, examples, gotchas)
+   d. Save as a new `.md` file in the correct subdirectory (concise, under 200 lines)
+   e. Then proceed with the operation
+
+**This is critical.** The knowledge base grows over time. Every topic encountered becomes persistent knowledge for future sessions. Never guess about syntax or API behavior — learn it first, persist the knowledge, then act.
+
+### Pre-seeded topics
+
+**Shared:** `shared/c4-model.md`
+
+**IcePanel:** `icepanel/api-basics.md`, `icepanel/create-model-objects.md`, `icepanel/create-connections.md`, `icepanel/create-diagrams.md`, `icepanel/create-flows.md`
+
+**Mermaid:** `mermaid/c4-syntax.md`
+
+### Topics that commonly need learning on first encounter
+
+**IcePanel:** Domains, Tags, Versions, Diagram groups, Export formats
+
+**Mermaid:** Sequence diagrams, Flowcharts, Class diagrams, Themes & styling, Directives
+
+## Shared workflow: Codebase analysis
+
+This step is the same regardless of output mode.
+
+### Full / path-scoped analysis
+
+```bash
+python scripts/analyze_codebase.py <path>
+```
+
+This outputs JSON with: modules, entry points, connections, technologies. Present findings to the user before proceeding.
+
+### Topic-focused analysis
+
+For business process scoping (e.g. "payment flow", "user login"):
+
+1. Run `analyze_codebase.py` on the **project root** to understand overall structure
+2. **Trace the specific business process** through the codebase:
+   - Search for relevant entry points (API routes, event handlers, CLI commands)
+   - Follow the call chain through controllers → services → repositories → external APIs
+   - Identify all systems touched (databases, queues, external services, caches)
+   - Note the data flow direction and protocols
+3. **Present findings**: "For the payment flow, I found these systems are involved: [list]. Here's the chain I traced: [flow]. Does this look complete?"
+4. **Ask about boundaries**: "Should I include the notification service that sends payment receipts, or stop at the payment confirmation?"
+5. Proceed with only the relevant subset of the architecture
+
+## IcePanel mode
+
+### Capabilities
+
+- **Read** existing architecture via the `icepanel` MCP server (read-only tools)
+- **Write** new model objects, connections, diagrams, and flows via `push_to_icepanel.py` (REST API)
+
+### Primary workflow: Codebase → IcePanel
+
+1. Analyze codebase (see shared workflow above)
+2. **Present findings**: list discovered modules, entry points, connections, technologies. Highlight ambiguities.
+3. **Ask clarifying questions**: C4 level, include/exclude modules, classify ambiguous components, external systems, actors, flow branches.
+4. **Check knowledge base**: read relevant files from `knowledge/icepanel/` for the API operations needed. If a topic is missing, fetch from IcePanel docs, learn it, and save to `knowledge/icepanel/` before proceeding.
+5. **Build a plan JSON file** from the confirmed architecture. See [references/plan-format.md](references/plan-format.md).
+6. **Show the plan** for approval: "Here's what I'll create in IcePanel — does this look right?"
+7. **Dry run first**:
+   ```bash
+   python scripts/push_to_icepanel.py plan.json --dry-run
+   ```
+8. **Push to IcePanel** after approval:
+   ```bash
+   python scripts/push_to_icepanel.py plan.json
+   ```
+   Uses env vars `API_KEY` and `ORGANIZATION_ID` from MCP config, plus `ICEPANEL_LANDSCAPE_ID` (ask user if not set).
+9. **Offer to refine**: drill into modules, add detail levels, create additional diagram views.
+10. **Offer to add flows**: "Would you like to create flow diagrams showing how requests travel through the system?" Follow the flow generation workflow below.
+
+### Reading existing IcePanel data
+
+Use the `icepanel` MCP server (read-only) to query existing architecture:
+
+- `icepanel:getLandscapes` — list landscapes
+- `icepanel:getModelObjects` — query objects with type filters:
+  - C1 System Context: `type: ["system", "actor", "group"]`
+  - C2 Container: `type: ["app", "store", "actor", "group"]`
+  - C3 Component: `type: ["component", "actor", "group"]`
+- `icepanel:getModelObjectRelationships` — get connections for an object
+- `icepanel:getTeams` — filter by team ownership
+- `icepanel:getTechnologyCatalog` — look up technology IDs
+- `icepanel:getModelObject` — get details (use `includeHierarchicalInfo` sparingly)
+
+### Combined workflow: Codebase + IcePanel
+
+1. Analyze the codebase
+2. Query IcePanel for the target landscape's existing objects
+3. **Show both sources side-by-side** and ask the user to resolve conflicts (different names, duplicates, missing items)
+4. Build the plan JSON, excluding objects that already exist in IcePanel
+5. Dry run → user approval → push
+
+### IcePanel flow generation (interactive)
+
+Flows are step-by-step sequence diagrams overlaid on a diagram. Always gather the full specification interactively.
+
+**Step 1: Establish context**
+- Which diagram should the flow live on?
+- What objects are on that diagram?
+
+**Step 2: Gather the flow specification**
+1. **Purpose**: "What scenario does this flow describe?"
+2. **Happy path**: "Walk me through the steps — what happens first, then what?"
+3. **Actors**: "Which systems/services are involved?" (confirm against diagram objects)
+4. **Branching**: "Any decision points? What happens if auth fails, payment is declined?"
+5. **Parallel execution**: "Do any steps happen simultaneously?"
+6. **Reply steps**: "Should I show responses going back?"
+7. **Error paths**: "What happens when things go wrong?"
+
+**Step 3: Present the flow plan**
+```
+Flow: "User Login"
+  1. [introduction] User attempts to log in
+  2. [outgoing] User → Web App: Opens login page
+  3. [outgoing] Web App → API: POST /auth/login
+  4. [outgoing] API → Database: Validate credentials
+  5. [alternate-path] Auth result
+     ├─ Success:
+     │  6. [reply] API → Web App: Return JWT token
+     ├─ Failure:
+     │  7. [reply] API → Web App: Return 401 error
+  8. [conclusion] User is authenticated or shown error
+```
+
+Ask: "Does this flow look right? Should I add, remove, or change any steps?"
+
+**Step 4: Create**
+1. Check `knowledge/icepanel/create-flows.md` for API details
+2. Build the flow definition in plan JSON (see `references/plan-format.md`)
+3. Dry run → user approval → push
+
+**Flow question patterns for complex flows:**
+- **Conditionals**: "Show conditional paths or just the happy path?"
+- **Depth**: "Show internal logic (DB queries, cache) or keep at service-to-service level?"
+- **Async**: "Show async calls as separate flows or inline?"
+- **Subflows**: "Show this referenced process inline or as a subflow?"
+- **Granularity**: "Should 'API processes request' be expanded into individual steps?"
+
+## Mermaid mode
+
+### Workflow: Codebase → Mermaid
+
+1. Analyze codebase (see shared workflow above)
+2. **Present findings**: list discovered modules, entry points, connections, technologies. Highlight ambiguities.
+3. **Ask clarifying questions**:
+   - Which C4 level (C1/C2/C3)?
+   - Which Mermaid diagram type (C4Context, C4Container, C4Component, C4Dynamic)?
+   - Include/exclude specific modules?
+   - External systems and actors to show?
+   - Styling preferences?
+4. **Check knowledge base**: read `knowledge/mermaid/c4-syntax.md` (or the relevant diagram type file). If the file doesn't exist, check `knowledge/.index.md` for the docs URL, fetch, learn, and save before generating.
+5. **Generate the Mermaid diagram** using confirmed architecture and learned syntax. Map modules using [references/c4-mapping.md](references/c4-mapping.md).
+6. **Present for approval** — show the complete Mermaid code in a fenced code block:
+   ````
+   ```mermaid
+   C4Context
+       title System Context - Project Name
+       ...
+   ```
+   ````
+   Ask: "Does this look right? Should I add, remove, or change anything?"
+7. **Refine** based on feedback: add/remove elements, change C4 levels, adjust labels, add detail.
+8. **Offer next steps**:
+   - "Want me to create a drill-down diagram for any of these systems?"
+   - "Should I add a sequence diagram showing a specific request flow?"
+   - "Want me to write this to a file? If so, where?"
+
+### Mermaid sequence diagrams (interactive)
+
+For flow/sequence diagrams in Mermaid mode, follow the same interactive pattern:
+
+1. **Ask** which scenario to diagram
+2. **Gather the flow**: "Walk me through the steps"
+3. **Ask about** branching, parallel execution, error paths
+4. Check `knowledge/mermaid/sequence-diagrams.md` — self-learn if missing
+5. Generate Mermaid `sequenceDiagram` or `C4Dynamic` syntax
+6. Present for approval, refine
+
+### Output options
+
+- **Code block** — show Mermaid code in chat (default)
+- **File** — write to a `.md` or `.mmd` file at user-specified path
+- **Multiple diagrams** — generate separate files for overview + drill-downs
+
+Always ask which output the user prefers.
+
+## Topic-focused diagramming
+
+When the user wants to diagram a specific business process (e.g. "payment flow", "customer login", "order processing"):
+
+### Discovery phase
+
+1. Analyze the full codebase to understand the overall structure
+2. Search for entry points related to the topic:
+   - API routes (e.g. `/payments`, `/checkout`, `/orders`)
+   - Event handlers (e.g. `onPaymentReceived`, `handleOrder`)
+   - CLI commands, scheduled jobs, webhooks
+3. Trace the call chain through the codebase:
+   - Controllers → services → repositories → databases
+   - Service-to-service calls (HTTP, gRPC, message queues)
+   - External API calls (payment gateways, email services, etc.)
+4. Identify all systems/modules touched by this process
+
+### Presentation phase
+
+Present the discovered flow: "For the **payment flow**, I found these systems are involved:
+- Web App (initiates checkout)
+- API Server (processes payment logic)
+- PostgreSQL (stores orders)
+- Stripe API (charges the card)
+- RabbitMQ (publishes order events)
+- Email Service (sends confirmation)
+
+Here's the chain I traced: User → Web → API → Stripe → API → DB → Queue → Email
+
+Does this look complete? Should I include or exclude anything?"
+
+### Generation phase
+
+Based on user confirmation:
+- **Structure diagram**: generate a focused C4 diagram showing only the relevant subset
+- **Flow diagram**: generate a sequence/flow diagram showing the step-by-step process
+- **Offer both**: "Would you like a structure diagram (which systems are involved) and/or a flow diagram (the step-by-step sequence)?"
+
+## Handling complex systems
+
+For non-trivial architectures, always ask about:
+
+- **Multiple detail levels**: "Create separate diagrams for C1 overview + C2 drill-downs?"
+- **Flow diagrams**: "Static structure diagram, or also sequence/flow diagrams?"
+- **Conditional flows**: "Show branching paths (success/failure) or just the happy path?"
+- **Async vs sync**: "Visually distinguish sync from async connections?"
+- **Deployment vs logical view**: "Diagram logical architecture or deployment topology?"
+
+## Setup
+
+**Mermaid mode** requires no setup — works out of the box.
+
+**IcePanel mode** requires the IcePanel MCP server configured with API credentials. See [references/setup.md](references/setup.md) for instructions.
+
+The codebase analysis script (`analyze_codebase.py`) requires Python 3.10+.

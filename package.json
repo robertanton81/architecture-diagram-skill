@@ -1,0 +1,25 @@
+{
+  "name": "architecture-diagram-skill",
+  "version": "2.0.0",
+  "description": "A Claude Skill and SDK agent for generating C4 architecture diagrams — supports IcePanel and Mermaid output modes",
+  "main": "./dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "interactive": "tsx src/interactive.ts",
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["claude", "icepanel", "mermaid", "c4", "architecture", "diagrams", "mcp"],
+  "author": "",
+  "license": "MIT",
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.33"
+  }
+}

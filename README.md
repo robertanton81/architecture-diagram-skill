@@ -17,6 +17,7 @@ The skill asks which mode you want at the start of every interaction.
 - **Monorepo scoping** — focus on a specific subdirectory (e.g. `services/payments`)
 - **Topic-focused diagrams** — trace a specific business process across the codebase (e.g. "payment flow", "user login", "order processing")
 - **Flow/sequence diagrams** — interactive step-by-step flow creation with branching, parallel paths, and error handling
+- **Visual review** — renders Mermaid diagrams to images and visually inspects them for readability before presenting to you (overlapping labels, cramped layouts, arrow spaghetti, etc.)
 - **Self-learning knowledge base** — learns IcePanel API and Mermaid syntax from official docs, persists knowledge for future sessions
 
 ## Quick Start
@@ -60,7 +61,8 @@ The skill will:
 3. Analyze the codebase
 4. Present its findings and ask clarifying questions
 5. Generate the diagram
-6. Offer refinements and follow-up diagrams
+6. Visually review the rendered diagram for readability (Mermaid mode)
+7. Offer refinements and follow-up diagrams
 
 ## Mermaid Mode
 
@@ -181,11 +183,23 @@ src/                            # SDK agent (TypeScript)
   interactive.ts                # Interactive REPL mode
 ```
 
+## Visual Review (Mermaid Mode)
+
+In Mermaid mode, the skill doesn't just generate code — it renders the diagram to an image and visually inspects it before showing it to you. This catches common readability issues:
+
+- Overlapping or truncated labels
+- Cramped layouts with elements too close together
+- Too many elements (suggests splitting into multiple diagrams)
+- Arrow spaghetti (crossing connections)
+- Poor visual flow direction
+
+The agent iterates up to 3 times to fix issues automatically. This uses the [Mermaid CLI](https://github.com/mermaid-js/mermaid-cli) (`mmdc`) via `npx` — no manual installation needed. If rendering fails for any reason, the skill gracefully falls back to code-only presentation.
+
 ## Requirements
 
 - **Claude Code** (for skill usage) or **Claude Agent SDK** (for standalone agent)
 - **Python 3.10+** (for `analyze_codebase.py`)
-- **Node.js 18+** (for SDK agent)
+- **Node.js 18+** (for SDK agent and Mermaid CLI rendering)
 - **IcePanel API key** (only for IcePanel mode)
 
 ## Design Philosophy

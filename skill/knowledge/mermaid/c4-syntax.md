@@ -206,3 +206,54 @@ C4Dynamic
 - Boundaries can be nested (System_Boundary inside Enterprise_Boundary)
 - Statement order controls layout — place important elements first
 - `UpdateLayoutConfig($c4ShapeInRow="3")` to control grid width
+
+## Readability Best Practices
+
+### Element count per diagram
+- **Ideal**: 5–10 elements (clear, spacious)
+- **Acceptable**: 10–15 elements (still readable with good layout)
+- **Too many**: >15 elements — split into an overview diagram + drill-down diagrams
+- When splitting, create a C1 overview first, then C2 drill-downs per system boundary
+
+### Layout configuration
+| Element count | Recommended `$c4ShapeInRow` |
+|---|---|
+| 3–5 | `"2"` or `"3"` |
+| 6–9 | `"3"` or `"4"` |
+| 10–15 | `"4"` or `"5"` |
+
+Always include `UpdateLayoutConfig` when >5 elements to prevent cramped layouts.
+
+### Label guidelines
+- **Element labels**: max 3–4 words (e.g. "Order Service", not "The Order Processing Service Module")
+- **Descriptions**: max 8–10 words — one concise sentence
+- **Relationship labels**: max 3–4 words (e.g. "Sends events", not "Sends order events to the message queue for processing")
+- **Technology tags**: keep to the framework/protocol name (e.g. "Express.js", "gRPC", "PostgreSQL")
+- If a label needs more detail, shorten the diagram label and explain in accompanying text
+
+### Directional relationships for layout control
+Use directional `Rel` variants to guide Mermaid's layout engine:
+- `Rel_D(from, to, "Label")` — push `to` below `from` (most common)
+- `Rel_R(from, to, "Label")` — push `to` to the right of `from`
+- `Rel_L(from, to, "Label")` — push `to` to the left
+- `Rel_U(from, to, "Label")` — push `to` above
+
+Use these when:
+- Actors should be at the top → `Rel_D(actor, system, ...)`
+- Databases should be at the bottom → `Rel_D(service, db, ...)`
+- External systems should be on the sides → `Rel_R(system, external, ...)`
+- Two systems should be side-by-side → `Rel_R(systemA, systemB, ...)`
+
+### Statement ordering
+Mermaid renders elements roughly in declaration order:
+1. Declare actors/users first (they appear at the top)
+2. Declare the main system and its boundaries next
+3. Declare external systems last (they appear at the bottom/sides)
+4. Declare relationships after all elements
+5. Within boundaries, declare left-to-right in the reading order you want
+
+### Reducing arrow spaghetti
+- Group tightly connected elements inside a `System_Boundary` or `Container_Boundary`
+- Limit connections per element to 3–4 visible on any single diagram
+- If an element has >4 connections, it may belong on a drill-down diagram instead
+- Use `UpdateRelStyle(from, to, $offsetX="-40", $offsetY="20")` to nudge overlapping labels

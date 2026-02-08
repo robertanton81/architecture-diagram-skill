@@ -256,8 +256,14 @@ Ask: "Does this flow look right? Should I add, remove, or change any steps?"
    - External systems and actors to show?
    - Styling preferences?
 4. **Check knowledge base**: read `knowledge/mermaid/c4-syntax.md` (or the relevant diagram type file). If the file doesn't exist, check `knowledge/.index.md` for the docs URL, fetch, learn, and save before generating.
-5. **Generate the Mermaid diagram** using confirmed architecture and learned syntax. Map modules using [references/c4-mapping.md](references/c4-mapping.md).
-6. **Present for approval** — show the complete Mermaid code in a fenced code block:
+5. **Generate the Mermaid diagram** using confirmed architecture and learned syntax. Map modules using [references/c4-mapping.md](references/c4-mapping.md). Follow the readability best practices in `knowledge/mermaid/c4-syntax.md` (label lengths, element count, layout config).
+6. **Visual review — render and inspect before showing to the user** (see [Visual review for Mermaid diagrams](#visual-review-for-mermaid-diagrams) below for full details):
+   a. Write the Mermaid code to a temp file (`/tmp/architecture-diagram.mmd`)
+   b. Render to PNG: `npx -p @mermaid-js/mermaid-cli mmdc -i /tmp/architecture-diagram.mmd -o /tmp/architecture-diagram.png -w 2048 -H 1536`
+   c. Read the PNG image and visually inspect it against the readability checklist
+   d. If readability issues found → fix the Mermaid code → re-render → re-inspect (max 3 iterations)
+   e. If `mmdc` fails or is unavailable → skip visual review, note it to the user, and proceed with code-only presentation
+7. **Present for approval** — show BOTH the Mermaid code in a fenced code block AND the rendered image:
    ````
    ```mermaid
    C4Context
@@ -265,9 +271,10 @@ Ask: "Does this flow look right? Should I add, remove, or change any steps?"
        ...
    ```
    ````
+   Show the rendered PNG image alongside the code.
    Ask: "Does this look right? Should I add, remove, or change anything?"
-7. **Refine** based on feedback: add/remove elements, change C4 levels, adjust labels, add detail.
-8. **Offer next steps**:
+8. **Refine** based on feedback: add/remove elements, change C4 levels, adjust labels, add detail. **Re-run visual review** after each refinement.
+9. **Offer next steps**:
    - "Want me to create a drill-down diagram for any of these systems?"
    - "Should I add a sequence diagram showing a specific request flow?"
    - "Want me to write this to a file? If so, where?"
@@ -281,7 +288,8 @@ For flow/sequence diagrams in Mermaid mode, follow the same interactive pattern:
 3. **Ask about** branching, parallel execution, error paths
 4. Check `knowledge/mermaid/sequence-diagrams.md` — self-learn if missing
 5. Generate Mermaid `sequenceDiagram` or `C4Dynamic` syntax
-6. Present for approval, refine
+6. **Visual review** — render and inspect the diagram (same process as the main workflow step 6 above)
+7. Present for approval (show code + rendered image), refine. Re-run visual review after each refinement.
 
 ### Output options
 
@@ -290,6 +298,53 @@ For flow/sequence diagrams in Mermaid mode, follow the same interactive pattern:
 - **Multiple diagrams** — generate separate files for overview + drill-downs
 
 Always ask which output the user prefers.
+
+## Visual review for Mermaid diagrams
+
+**Every Mermaid diagram must be visually reviewed before presenting to the user.** Generating correct code is not enough — the rendered diagram must be readable and well-laid-out.
+
+### Rendering
+
+```bash
+# Write diagram code to temp file, then render to PNG
+npx -p @mermaid-js/mermaid-cli mmdc -i /tmp/architecture-diagram.mmd -o /tmp/architecture-diagram.png -w 2048 -H 1536
+```
+
+Then read the PNG image to visually inspect it. Claude can see images — use this ability.
+
+If `mmdc` fails (not installed, Node issue, etc.): tell the user "I wasn't able to render a preview — please check the Mermaid code visually" and proceed with code-only presentation. Do not block the workflow on rendering failures.
+
+### Readability checklist
+
+Inspect the rendered image for these issues:
+
+| Issue | What to look for | How to fix |
+|---|---|---|
+| **Overlapping labels** | Text running into other text, labels covering boxes or arrows | Shorten labels, use `UpdateRelStyle` with `$offsetX`/`$offsetY` to reposition |
+| **Cramped layout** | Elements too close together, no whitespace between boxes | Increase `$c4ShapeInRow`, add `UpdateLayoutConfig`, reorder elements |
+| **Too many elements** | >12-15 elements making the diagram overwhelming | Split into overview + drill-down diagrams, ask user which level of detail |
+| **Unreadable text** | Labels truncated, text too small to read, descriptions cut off | Shorten labels to 3-4 words, shorten descriptions to 8-10 words |
+| **Arrow spaghetti** | Too many crossing connections, hard to trace any single path | Group related elements in boundaries, reduce connections per element to 3-4 |
+| **Missing context** | No title, key elements without descriptions | Add `title`, add descriptions to main elements |
+| **Poor flow direction** | Important relationships not following a clear visual flow | Use directional `Rel_D`/`Rel_R`/`Rel_L`/`Rel_U` to guide layout |
+
+### Iteration loop
+
+1. Render and inspect
+2. If issues found → identify which fixes to apply (consult `knowledge/mermaid/c4-syntax.md` readability section)
+3. Modify the Mermaid code
+4. Re-render and re-inspect
+5. Repeat up to **3 iterations** maximum
+6. If still not ideal after 3 iterations → present the best version with a note about remaining issues and suggestions
+
+### What a good diagram looks like
+
+- Clear visual hierarchy (actors at top, main system in center, externals at edges)
+- All labels readable without zooming
+- Connections traceable — you can follow any arrow from source to destination
+- Adequate whitespace — elements don't feel cramped
+- Consistent level of detail — no single element with far more detail than others
+- Title present and descriptive
 
 ## Topic-focused diagramming
 

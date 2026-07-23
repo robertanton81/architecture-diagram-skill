@@ -257,20 +257,23 @@ def create_flow(api_key: str, landscape_id: str, flow: dict) -> dict:
         steps = {}
         for step in flow["steps"]:
             step_id = step["id"]
+            # IcePanel's flow API requires EVERY optional key to be present on
+            # each step (null where not applicable), so set them all explicitly.
             step_payload = {
                 "description": step["description"],
                 "id": step_id,
                 "index": step["index"],
                 "type": step["type"],
+                "originId": step.get("originId"),
+                "targetId": step.get("targetId"),
+                "parentId": step.get("parentId"),
+                "paths": step.get("paths"),
+                "flowId": step.get("flowId"),
+                "viaId": step.get("viaId"),
             }
 
-            for field in ["detailedDescription", "originId", "targetId", "viaId", "parentId", "flowId"]:
-                if field in step and step[field] is not None:
-                    step_payload[field] = step[field]
-
-            # Handle paths for alternate-path and parallel-path steps
-            if "paths" in step and step["paths"]:
-                step_payload["paths"] = step["paths"]
+            if step.get("detailedDescription") is not None:
+                step_payload["detailedDescription"] = step["detailedDescription"]
 
             steps[step_id] = step_payload
         payload["steps"] = steps
@@ -321,6 +324,20 @@ def populate_diagram_content(
     """Place objects and connections on the diagram canvas."""
     diagram_objects = auto_layout(objects, ref_to_id)
 
+    # Diagram content references model object IDs (the map key), not the custom
+    # diagram-object `id`. Normalise both so connection endpoints line up.
+    for model_id, dobj in diagram_objects.items():
+        dobj["id"] = model_id
+        dobj["modelId"] = model_id
+
+    def _connectors(origin: dict, target: dict) -> tuple[str, str]:
+        """Pick attach points based on the objects' relative positions."""
+        dx = target["x"] - origin["x"]
+        dy = target["y"] - origin["y"]
+        if abs(dy) >= abs(dx):
+            return ("bottom-center", "top-center") if dy > 0 else ("top-center", "bottom-center")
+        return ("right-middle", "left-middle") if dx > 0 else ("left-middle", "right-middle")
+
     # Build diagram connection map
     diagram_connections: dict[str, dict] = {}
     for conn_info in connection_ids:
@@ -334,11 +351,14 @@ def populate_diagram_content(
         target_dobj = diagram_objects.get(target_model_id, {})
 
         if origin_dobj and target_dobj:
+            origin_connector, target_connector = _connectors(origin_dobj, target_dobj)
             diagram_connections[conn_id] = {
                 "id": f"dconn_{origin_ref}_{target_ref}",
                 "modelId": conn_id,
-                "originId": origin_dobj["id"],
-                "targetId": target_dobj["id"],
+                "originId": origin_model_id,
+                "targetId": target_model_id,
+                "originConnector": origin_connector,
+                "targetConnector": target_connector,
                 "lineShape": "curved",
                 "labelPosition": 0.5,
                 "points": [],
@@ -451,6 +471,20 @@ def main():
     root_objects = [o for o in objects if not o.get("parentRef")]
     child_objects = [o for o in objects if o.get("parentRef")]
 
+    # IcePanel rejects app/store/component objects parented to the landscape
+    # root ("a root cannot be an owner of a app"); they must live inside a
+    # `system`. Warn early so the plan can add a containing system + parentRef.
+    orphaned = [o for o in root_objects if o.get("type") in ("app", "store", "component")]
+    if orphaned:
+        names = ", ".join(o["name"] for o in orphaned)
+        print(
+            f"Warning: {len(orphaned)} {'/'.join(sorted({o['type'] for o in orphaned}))} "
+            f"object(s) have no parentRef and will be parented to root, which "
+            f"IcePanel rejects: {names}. Add a `system` object and set their "
+            f"parentRef to it.",
+            file=sys.stderr,
+        )
+
     for obj in root_objects:
         obj["parentId"] = root_id
         print(f"Creating [{obj['type']}] {obj['name']}...")
@@ -506,8 +540,12 @@ def main():
     # Create diagram if specified and populate it with objects + connections
     created_diagram = None
     if plan.get("diagram"):
+        # app-diagram / component-diagram must attach to their parent system/app,
+        # not the landscape root. Use `modelRef` from the plan if provided.
+        model_ref = plan["diagram"].get("modelRef")
+        diagram_model_id = ref_to_id.get(model_ref, root_id) if model_ref else root_id
         print(f"Creating diagram: {plan['diagram']['name']}...")
-        result = create_diagram(args.api_key, landscape_id, plan["diagram"], root_id)
+        result = create_diagram(args.api_key, landscape_id, plan["diagram"], diagram_model_id)
         diagram_id = result.get("id", "?")
         created_diagram = {"id": diagram_id, "name": plan["diagram"]["name"]}
         print(f"  Created: {diagram_id}")

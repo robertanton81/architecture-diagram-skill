@@ -320,12 +320,18 @@ def populate_diagram_content(
     connections: list[dict],
     ref_to_id: dict[str, str],
     connection_ids: list[dict],
+    exclude_ref: str | None = None,
 ) -> dict:
-    """Place objects and connections on the diagram canvas."""
-    diagram_objects = auto_layout(objects, ref_to_id)
+    """Place objects and connections on the diagram canvas.
 
-    # Diagram content references model object IDs (the map key), not the custom
-    # diagram-object `id`. Normalise both so connection endpoints line up.
+    exclude_ref: ref of the diagram's own parent system (app-diagram) or app
+    (component-diagram). That object must NOT be placed on its own diagram —
+    only its children are — otherwise IcePanel renders a stray box for it.
+    """
+    placed = [o for o in objects if o.get("ref") != exclude_ref]
+    diagram_objects = auto_layout(placed, ref_to_id)
+
+    # A diagram object's id/modelId are the model object id (also the map key).
     for model_id, dobj in diagram_objects.items():
         dobj["id"] = model_id
         dobj["modelId"] = model_id
@@ -338,31 +344,58 @@ def populate_diagram_content(
             return ("bottom-center", "top-center") if dy > 0 else ("top-center", "bottom-center")
         return ("right-middle", "left-middle") if dx > 0 else ("left-middle", "right-middle")
 
-    # Build diagram connection map
+    def _anchor(o: dict, side: str) -> tuple[float, float]:
+        x, y, w, h = o["x"], o["y"], o["width"], o["height"]
+        return {
+            "top-center": (x + w / 2, y),
+            "bottom-center": (x + w / 2, y + h),
+            "left-middle": (x, y + h / 2),
+            "right-middle": (x + w, y + h / 2),
+        }[side]
+
+    # Build diagram connection map.
+    #
+    # IcePanel canvas connections require ALL of:
+    #   - a DISTINCT diagram-connection key/`id` (NOT the model connection id)
+    #   - `modelId` pointing at the underlying model connection
+    #   - `labelPosition` on a 0-100 scale (not 0-1)
+    #   - a non-empty `points` path between the two anchors — with empty points
+    #     the connection is stored but no line is drawn.
     diagram_connections: dict[str, dict] = {}
     for conn_info in connection_ids:
-        conn_id = conn_info["id"]
+        model_conn_id = conn_info["id"]
         origin_ref = conn_info.get("originRef", "")
         target_ref = conn_info.get("targetRef", "")
         origin_model_id = ref_to_id.get(origin_ref, "")
         target_model_id = ref_to_id.get(target_ref, "")
 
-        origin_dobj = diagram_objects.get(origin_model_id, {})
-        target_dobj = diagram_objects.get(target_model_id, {})
+        origin_dobj = diagram_objects.get(origin_model_id)
+        target_dobj = diagram_objects.get(target_model_id)
+        if not (origin_dobj and target_dobj):
+            continue
 
-        if origin_dobj and target_dobj:
-            origin_connector, target_connector = _connectors(origin_dobj, target_dobj)
-            diagram_connections[conn_id] = {
-                "id": f"dconn_{origin_ref}_{target_ref}",
-                "modelId": conn_id,
-                "originId": origin_model_id,
-                "targetId": target_model_id,
-                "originConnector": origin_connector,
-                "targetConnector": target_connector,
-                "lineShape": "curved",
-                "labelPosition": 0.5,
-                "points": [],
-            }
+        origin_connector, target_connector = _connectors(origin_dobj, target_dobj)
+        sx, sy = _anchor(origin_dobj, origin_connector)
+        tx, ty = _anchor(target_dobj, target_connector)
+        segments = 8
+        points = [
+            {"x": round(sx + (tx - sx) * k / segments, 2),
+             "y": round(sy + (ty - sy) * k / segments, 2)}
+            for k in range(segments + 1)
+        ]
+
+        dconn_id = f"dconn_{origin_ref}_{target_ref}"  # distinct from model_conn_id
+        diagram_connections[dconn_id] = {
+            "id": dconn_id,
+            "modelId": model_conn_id,
+            "originId": origin_model_id,
+            "targetId": target_model_id,
+            "originConnector": origin_connector,
+            "targetConnector": target_connector,
+            "lineShape": "curved",
+            "labelPosition": 50,
+            "points": points,
+        }
 
     payload = {
         "objects": diagram_objects,
@@ -562,6 +595,7 @@ def main():
                     plan.get("connections", []),
                     ref_to_id,
                     created_connections,
+                    exclude_ref=plan["diagram"].get("modelRef"),
                 )
                 print("  Diagram content populated successfully")
             except Exception as e:

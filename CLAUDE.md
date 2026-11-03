@@ -45,6 +45,16 @@ npm start -- "Diagram the payment flow in this project"
 npm start -- "Create architecture diagram for services/auth"
 ```
 
+## Running the Tests
+
+`tests/` covers `skill/scripts/push_to_icepanel.py` with stdlib `unittest` only: unit tests on the payload builders (with `api_request` stubbed) and end-to-end runs of the CLI against an in-process mock of the IcePanel API (`tests/icepanel_mock.py`). Run them after any change to the push script or the plan format:
+
+```bash
+python3 -m unittest discover -s tests -v   # or: npm test
+```
+
+CI runs the same command (`.github/workflows/tests.yml`). `tests/` is deliberately outside `skill/` so it is not copied into `~/.claude/skills/`.
+
 ## Installing the Skill in Claude Code
 
 ```bash

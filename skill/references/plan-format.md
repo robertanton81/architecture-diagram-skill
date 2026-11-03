@@ -99,6 +99,7 @@ The `push_to_icepanel.py` script reads a plan JSON file that describes what to c
 |---|---|---|
 | `name` | yes | Diagram title |
 | `type` | yes | `context-diagram` (C1), `app-diagram` (C2), or `component-diagram` (C3) |
+| `modelRef` | no | Ref of the object the diagram belongs to. **Required for `app-diagram`/`component-diagram`** — set it to the ref of the parent `system` (C2) or `app` (C3); IcePanel rejects these diagram types when attached to the landscape root. Omit for `context-diagram` (defaults to root). |
 
 ### Flows
 

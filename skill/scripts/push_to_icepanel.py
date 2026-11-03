@@ -328,7 +328,10 @@ def populate_diagram_content(
     (component-diagram). That object must NOT be placed on its own diagram —
     only its children are — otherwise IcePanel renders a stray box for it.
     """
-    placed = [o for o in objects if o.get("ref") != exclude_ref]
+    placed = [
+        o for o in objects
+        if exclude_ref is None or o.get("ref", o["name"]) != exclude_ref
+    ]
     diagram_objects = auto_layout(placed, ref_to_id)
 
     # A diagram object's id/modelId are the model object id (also the map key).
@@ -384,7 +387,9 @@ def populate_diagram_content(
             for k in range(segments + 1)
         ]
 
-        dconn_id = f"dconn_{origin_ref}_{target_ref}"  # distinct from model_conn_id
+        # Derived from the model connection id so two connections between the
+        # same pair of objects (request + reply) each keep their own line.
+        dconn_id = f"dconn_{model_conn_id}"
         diagram_connections[dconn_id] = {
             "id": dconn_id,
             "modelId": model_conn_id,

@@ -3,3 +3,4 @@ dist/
 .env
 *.skill
 .DS_Store
+__pycache__/

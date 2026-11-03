@@ -181,7 +181,22 @@ skill/                          # The portable Claude Skill
 src/                            # SDK agent (TypeScript)
   index.ts                      # Single-prompt mode
   interactive.ts                # Interactive REPL mode
+tests/                          # Tests for push_to_icepanel.py (not part of the skill)
+  test_push_to_icepanel.py      # Payload-shape unit tests + CLI end-to-end tests
+  icepanel_mock.py              # In-process mock of the IcePanel REST API
 ```
+
+## Tests
+
+The IcePanel push script has a test suite that pins down the exact payloads it sends (the diagram-content shape in particular was reverse-engineered against the live API, so the tests are the record of what IcePanel actually renders). It needs nothing beyond the standard library:
+
+```bash
+npm test
+# or
+python3 -m unittest discover -s tests -v
+```
+
+The same suite runs in GitHub Actions on every push and pull request.
 
 ## Visual Review (Mermaid Mode)
 
